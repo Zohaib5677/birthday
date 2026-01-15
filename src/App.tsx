@@ -381,12 +381,19 @@ export default function App() {
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = new Audio("/music.mp3");
+    // Create audio element and add to DOM for better mobile support
+    const audio = document.createElement("audio");
+    audio.src = "/music.mp3";
     audio.loop = true;
     audio.preload = "auto";
+    audio.crossOrigin = "anonymous";
+    document.body.appendChild(audio);
     backgroundAudioRef.current = audio;
+    
     return () => {
       audio.pause();
+      audio.currentTime = 0;
+      document.body.removeChild(audio);
       backgroundAudioRef.current = null;
     };
   }, []);
@@ -394,15 +401,20 @@ export default function App() {
   const playBackgroundMusic = useCallback(() => {
     const audio = backgroundAudioRef.current;
     if (!audio) {
+      console.warn("Audio element not available");
       return;
     }
     if (!audio.paused) {
       return;
     }
     audio.currentTime = 0;
-    void audio.play().catch(() => {
-      // ignore play errors (browser might block)
-    });
+    audio.volume = 0.5; // Set reasonable default volume
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => {
+        console.error("Failed to play audio:", error);
+      });
+    }
   }, []);
 
   const typingComplete = currentLineIndex >= TYPED_LINES.length;
