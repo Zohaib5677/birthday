@@ -487,25 +487,41 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" && event.key !== " ") {
-        return;
-      }
-      event.preventDefault();
-      if (!hasStarted) {
-        playBackgroundMusic();
-        setHasStarted(true);
-        return;
-      }
-      if (hasAnimationCompleted && isCandleLit) {
-        setIsCandleLit(false);
-        setFireworksActive(true);
-      }
-    };
+  const triggerAction = () => {
+    if (!hasStarted) {
+      playBackgroundMusic();
+      setHasStarted(true);
+      return;
+    }
+    if (hasAnimationCompleted && isCandleLit) {
+      setIsCandleLit(false);
+      setFireworksActive(true);
+    }
+  };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Enter" || event.code === "Enter") {
+      event.preventDefault();
+      triggerAction();
+    }
+  };
+
+  const handleTouchOrClick = () => {
+    triggerAction();
+  };
+
+  // Desktop keyboard
+  window.addEventListener("keydown", handleKeyDown);
+  // Mobile tap
+  window.addEventListener("touchstart", handleTouchOrClick, { once: true }); // fire once
+  window.addEventListener("click", handleTouchOrClick, { once: true }); // fallback for some mobiles
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+    window.removeEventListener("touchstart", handleTouchOrClick);
+    window.removeEventListener("click", handleTouchOrClick);
+  };
+}, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
 
   const handleCardToggle = useCallback((id: string) => {
     setActiveCardId((current) => (current === id ? null : id));
