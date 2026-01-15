@@ -77,13 +77,13 @@ const BACKGROUND_FADE_START = Math.max(
 );
 
 const TYPED_LINES = [
-  "> tina",
+  "Laiba Princess",
   "...",
-  "> today is your birthday",
+  "Today is your birthday",
   "...",
-  "> so i made you this computer program",
+  "Many Many happy returns of the day",
   "...",
-  "٩(◕‿◕)۶ ٩(◕‿◕)۶ ٩(◕‿◕)۶"
+  "Wishing you all the best",
 ];
 const TYPED_CHAR_DELAY = 100;
 const POST_TYPING_SCENE_DELAY = 1000;
@@ -278,7 +278,7 @@ function AnimatedScene({
           scale={0.75}
         />
         <PictureFrame
-          image="/frame4.jpg"
+          image="/frame4.jpeg"
           position={[-1.5, 0.735, 2.5]}
           rotation={[0, 5.4, 0]}
           scale={0.75}
