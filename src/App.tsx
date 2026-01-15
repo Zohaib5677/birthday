@@ -379,21 +379,33 @@ export default function App() {
   const [fireworksActive, setFireworksActive] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    // Create audio element and add to DOM for better mobile support
+    // Initialize audio element with mobile-friendly settings
     const audio = document.createElement("audio");
+    audio.id = "background-music";
     audio.src = "/music.mp3";
     audio.loop = true;
-    audio.preload = "auto";
+    audio.preload = "metadata";
     audio.crossOrigin = "anonymous";
+    audio.style.display = "none";
+    // Important for iOS: allow inline playback
+    audio.setAttribute("playsinline", "true");
+    audio.setAttribute("webkit-playsinline", "true");
     document.body.appendChild(audio);
     backgroundAudioRef.current = audio;
     
     return () => {
-      audio.pause();
-      audio.currentTime = 0;
-      document.body.removeChild(audio);
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+        if (document.body.contains(audio)) {
+          document.body.removeChild(audio);
+        }
+      } catch (e) {
+        console.error("Error cleaning up audio:", e);
+      }
       backgroundAudioRef.current = null;
     };
   }, []);
@@ -404,16 +416,33 @@ export default function App() {
       console.warn("Audio element not available");
       return;
     }
+    
+    // Resume audio context if needed (iOS requirement)
+    if (!audioContextRef.current && typeof window !== "undefined" && window.AudioContext) {
+      try {
+        audioContextRef.current = new window.AudioContext();
+      } catch (e) {
+        console.warn("Could not create AudioContext:", e);
+      }
+    }
+    
     if (!audio.paused) {
+      console.log("Audio already playing");
       return;
     }
+    
     audio.currentTime = 0;
     audio.volume = 0.5; // Set reasonable default volume
+    
     const playPromise = audio.play();
     if (playPromise !== undefined) {
-      playPromise.catch((error) => {
-        console.error("Failed to play audio:", error);
-      });
+      playPromise
+        .then(() => {
+          console.log("Audio playback started successfully");
+        })
+        .catch((error) => {
+          console.error("Failed to play audio:", error.message, error.name);
+        });
     }
   }, []);
 
@@ -501,11 +530,13 @@ export default function App() {
   useEffect(() => {
   const triggerAction = () => {
     if (!hasStarted) {
+      console.log("Starting animation and music");
       playBackgroundMusic();
       setHasStarted(true);
       return;
     }
     if (hasAnimationCompleted && isCandleLit) {
+      console.log("Blowing out candle");
       setIsCandleLit(false);
       setFireworksActive(true);
     }
@@ -524,14 +555,14 @@ export default function App() {
 
   // Desktop keyboard
   window.addEventListener("keydown", handleKeyDown);
-  // Mobile tap
-  window.addEventListener("touchstart", handleTouchOrClick, { once: true }); // fire once
-  window.addEventListener("click", handleTouchOrClick, { once: true }); // fallback for some mobiles
+  // Mobile tap - use multiple triggers for reliability
+  document.addEventListener("touchstart", handleTouchOrClick, { once: false }); 
+  document.addEventListener("click", handleTouchOrClick, { once: false });
 
   return () => {
     window.removeEventListener("keydown", handleKeyDown);
-    window.removeEventListener("touchstart", handleTouchOrClick);
-    window.removeEventListener("click", handleTouchOrClick);
+    document.removeEventListener("touchstart", handleTouchOrClick);
+    document.removeEventListener("click", handleTouchOrClick);
   };
 }, [hasStarted, hasAnimationCompleted, isCandleLit, playBackgroundMusic]);
 
