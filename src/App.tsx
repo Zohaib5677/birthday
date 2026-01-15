@@ -393,6 +393,24 @@ export default function App() {
     // Important for iOS: allow inline playback
     audio.setAttribute("playsinline", "true");
     audio.setAttribute("webkit-playsinline", "true");
+    audio.setAttribute("controlsList", "nodownload");
+    
+    // Log audio element creation
+    console.log("Creating audio element with src:", audio.src);
+    
+    // Listen for audio load and error events
+    audio.addEventListener("canplay", () => {
+      console.log("Audio is ready to play");
+    });
+    
+    audio.addEventListener("error", (e) => {
+      console.error("Audio error:", e, "Error code:", audio.error?.code, "Message:", audio.error?.message);
+    });
+    
+    audio.addEventListener("loadstart", () => {
+      console.log("Audio loading started");
+    });
+    
     document.body.appendChild(audio);
     backgroundAudioRef.current = audio;
     
@@ -421,6 +439,11 @@ export default function App() {
     if (!audioContextRef.current && typeof window !== "undefined" && window.AudioContext) {
       try {
         audioContextRef.current = new window.AudioContext();
+        if (audioContextRef.current.state === "suspended") {
+          audioContextRef.current.resume().then(() => {
+            console.log("AudioContext resumed");
+          });
+        }
       } catch (e) {
         console.warn("Could not create AudioContext:", e);
       }
@@ -431,17 +454,33 @@ export default function App() {
       return;
     }
     
+    console.log("Attempting to play audio, current state:", {
+      paused: audio.paused,
+      src: audio.src,
+      networkState: audio.networkState,
+      readyState: audio.readyState,
+    });
+    
     audio.currentTime = 0;
     audio.volume = 0.5; // Set reasonable default volume
+    audio.muted = false; // Ensure not muted
     
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          console.log("Audio playback started successfully");
+          console.log("✅ Audio playback started successfully");
         })
         .catch((error) => {
-          console.error("Failed to play audio:", error.message, error.name);
+          console.error("❌ Failed to play audio:", error.message, error.name);
+          // Fallback: try with muted then unmute
+          audio.muted = true;
+          audio.play().then(() => {
+            console.log("Playing muted, will unmute on user gesture");
+            audio.muted = false;
+          }).catch(err => {
+            console.error("Even muted autoplay failed:", err);
+          });
         });
     }
   }, []);
